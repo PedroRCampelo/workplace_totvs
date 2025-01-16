@@ -113,7 +113,7 @@ Static Function fMontaRel(oProc)
 /*/
 
 	//Variaveis do relatório
-	Local cNomeRel      := "Orcamento"+FunName()+"_"+RetCodUsr()+"_"+dToS(Date())+"_"+StrTran(Time(), ":", "")
+	Local cNomeRel      := "Orcamento_"+FunName()+"_"+RetCodUsr()+"_"+dToS(Date())+"_"+StrTran(Time(), ":", "")
 	Private oPrintPvt
 	Private cHoraEx     := Time()
 	Private nPagAtu     := 1
@@ -339,30 +339,19 @@ Static Function fMontaRel(oProc)
 				// nDesconto  += QRY_ITE->C6_VALDESC
 				
 				//Imprime os dados
-				If cLayout == "1"
-					oPrintPvt:SayAlign(nLinAtu, nPosCod, QRY_ITE->C6_PRODUTO,                                oFontDet, 200, 35, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosDesc, QRY_ITE->B1_DESC,                                  oFontDet, 200, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosUnid, QRY_ITE->C6_UM,                                    oFontDet, 030, 07, , nPadLeft,)
+	
+					oPrintPvt:SayAlign(nLinAtu, nPosCod, QRY_ITE->CK_PRODUTO,                                oFontDet, 200, 35, , nPadLeft,)
+					oPrintPvt:SayAlign(nLinAtu, nPosDesc, QRY_ITE->CK_DESCONT,                                  oFontDet, 200, 07, , nPadLeft,)
+					oPrintPvt:SayAlign(nLinAtu, nPosUnid, QRY_ITE->CK_UM,                                    oFontDet, 030, 07, , nPadLeft,)
 					oPrintPvt:SayAlign(nLinAtu, nPosNCM , QRY_ITE->B1_POSIPI,                                oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosQuan, Alltrim(Transform(QRY_ITE->C6_QTDVEN, cMaskQtd)),  oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosVUni, Alltrim(Transform(QRY_ITE->C6_PRCVEN, cMaskPrc)),  oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosVTot, Alltrim(Transform(QRY_ITE->C6_VALOR, cMaskVlr)),   oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosSTVl, Alltrim(Transform(nPrcUniSol, cMaskPrc)),          oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosSTTo, Alltrim(Transform(nTotSol, cMaskVlr)),             oFontDet, 050, 07, , nPadLeft,) 
-					oPrintPvt:SayAlign(nLinAtu, nPosAIcm, Alltrim(Transform(nAlqICM, cMaskPad)),             oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosEnt , DToC(QRY_ITE->C6_ENTREG),                          oFontDet, 050, 07, , nPadLeft,)
-				Else
-					oPrintPvt:SayAlign(nLinAtu, nPosCod, QRY_ITE->C6_PRODUTO,                                oFontDet, 200, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosDesc, QRY_ITE->B1_DESC,                                  oFontDet, 200, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosUnid, QRY_ITE->C6_UM,                                    oFontDet, 030, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosNCM , QRY_ITE->B1_POSIPI,                                oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosQuan, Alltrim(Transform(QRY_ITE->C6_QTDVEN, cMaskQtd)),  oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosVUni, Alltrim(Transform(QRY_ITE->C6_PRCVEN, cMaskPrc)),  oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosVTot, Alltrim(Transform(QRY_ITE->C6_VALOR, cMaskVlr)),   oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosAIcm, Alltrim(Transform(nAlqICM, cMaskPad)),             oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosAIpi, Alltrim(Transform(nAlqIPI, cMaskPad)),             oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosEnt , DToC(QRY_ITE->C6_ENTREG),                          oFontDet, 050, 07, , nPadLeft,)
-				EndIf
+					// oPrintPvt:SayAlign(nLinAtu, nPosQuan, Alltrim(Transform(QRY_ITE->C6_QTDVEN, cMaskQtd)),  oFontDet, 050, 07, , nPadLeft,)
+					// oPrintPvt:SayAlign(nLinAtu, nPosVUni, Alltrim(Transform(QRY_ITE->C6_PRCVEN, cMaskPrc)),  oFontDet, 050, 07, , nPadLeft,)
+					// oPrintPvt:SayAlign(nLinAtu, nPosVTot, Alltrim(Transform(QRY_ITE->C6_VALOR, cMaskVlr)),   oFontDet, 050, 07, , nPadLeft,)
+					// oPrintPvt:SayAlign(nLinAtu, nPosSTVl, Alltrim(Transform(nPrcUniSol, cMaskPrc)),          oFontDet, 050, 07, , nPadLeft,)
+					// oPrintPvt:SayAlign(nLinAtu, nPosSTTo, Alltrim(Transform(nTotSol, cMaskVlr)),             oFontDet, 050, 07, , nPadLeft,) 
+					// oPrintPvt:SayAlign(nLinAtu, nPosAIcm, Alltrim(Transform(nAlqICM, cMaskPad)),             oFontDet, 050, 07, , nPadLeft,)
+					// oPrintPvt:SayAlign(nLinAtu, nPosEnt , DToC(QRY_ITE->C6_ENTREG),                          oFontDet, 050, 07, , nPadLeft,)
+			
 
 				nLinAtu += 10
 				
@@ -372,7 +361,7 @@ Static Function fMontaRel(oProc)
 					fImpCab()
 				EndIf
 				
-				nValorTot += QRY_ITE->C6_VALOR
+				nValorTot += QRY_ITE->CK_VALOR
 				QRY_ITE->(DbSkip())
 			EndDo
 			nTotFrete := MaFisRet(, "NF_FRETE")
@@ -383,11 +372,6 @@ Static Function fMontaRel(oProc)
 			
 			//Imprime o Total do Pedido
 			fImpTot()
-			
-			//Se tiver mensagem da observacao
-			If !Empty(QRY_ORC->C5_MENNOTA)
-				fMsgObs()
-			EndIf
 			
 			//Se deveria ser impresso as duplicatas
 			If cImpDupl == "1"
@@ -475,10 +459,10 @@ Static Function fImpCab()
 	oPrintPvt:SayAlign(nLinCab-10, nColMeio+8,  "Pedido:",                                   	oFontTit,  060, nTamFundo, nCorAzul, nPadLeft, )
 	nLinCab += 10
 	oPrintPvt:SayAlign(nLinCab,    nColMeio+8,  "Num.Pedido:",                               	oFontCabN, 060, 07, , nPadLeft, )
-	oPrintPvt:SayAlign(nLinCab,    nColMeio+58, QRY_ORC->C5_NUM,                                oFontCab,  100, 07, , nPadLeft, )
+	oPrintPvt:SayAlign(nLinCab,    nColMeio+58, QRY_ORC->CJ_NUM,                                oFontCab,  100, 07, , nPadLeft, )
 	nLinCab += 10
 	oPrintPvt:SayAlign(nLinCab,    nColMeio+8,  "Dt.Emissao:",                                  oFontCabN, 060, 07, , nPadLeft, )
-	oPrintPvt:SayAlign(nLinCab,    nColMeio+58, dToC(QRY_ORC->C5_EMISSAO),                      oFontCab,  100, 07, , nPadLeft, )
+	oPrintPvt:SayAlign(nLinCab,    nColMeio+58, dToC(QRY_ORC->CJ_EMISSAO),                      oFontCab,  100, 07, , nPadLeft, )
 	nLinCab += 10
 	oPrintPvt:SayAlign(nLinCab,    nColMeio+8,  "Cliente:",                                     oFontCabN, 060, 07, , nPadLeft, )
 	oPrintPvt:SayAlign(nLinCab,    nColMeio+38, cCliAux,                                        oFontCab, 300, 07, , nPadLeft, )
@@ -510,36 +494,26 @@ Static Function fImpCab()
 	oPrintPvt:SayAlign(nLinCab, nColMeio+100, QRY_ORC->A1_BAIRRO, 								oFontCab,  130, 07, , nPadLeft, )
 	oPrintPvt:SayAlign(nLinCab, nColMeio+200,","+QRY_ORC->A1_MUN,	 							oFontCab,  180, 07, , nPadLeft, )
 	oPrintPvt:SayAlign(nLinCab, nColMeio+300," - "+QRY_ORC->A1_EST,								oFontCab,  200, 07, , nPadLeft, )
-	nLinCab += 10
-	oPrintPvt:SayAlign(nLinCab, nColMeio+8, "Vendedor:",                                        oFontCabN, 060, 07, , nPadLeft, )
-	oPrintPvt:SayAlign(nLinCab, nColMeio+50, QRY_ORC->C5_VEND1 + " - "+QRY_ORC->A3_NREDUZ,      oFontCab,  120, 07, , nPadLeft, )
-	nLinCab += 10
-	oPrintPvt:SayAlign(nLinCab, nColMeio+8, "Frete:",                                           oFontCabN, 060, 07, , nPadLeft, )
-	If QRY_ORC->C5_TPFRETE == "C"
-		cFretePed := "CIF"
-	ElseIf QRY_ORC->C5_TPFRETE == "F"
-		cFretePed := "FOB"
-	ElseIf QRY_ORC->C5_TPFRETE == "T"
-		cFretePed := "Terceiros"
-	Else
-		cFretePed := "Sem Frete"
-	EndIf
-	cFretePed += " - "+Alltrim(Transform(QRY_ORC->C5_FRETE, cMaskFrete))
-	oPrintPvt:SayAlign(nLinCab, nColMeio+32, cFretePed,                                         oFontCab,  060, 07, , nPadLeft, )
-	nLinCab += 13
-	oPrintPvt:SayAlign(nLinCab, nColMeio+8, "Natureza:",                                        oFontCabN, 060, 07, , nPadLeft, )
-	oPrintPvt:SayAlign(nLinCab, nColMeio+50, Upper(Posicione("SED",1,FwxFilial("SED")+QRY_ORC->C5_NATUREZ,"ED_DESCRIC")), oFontCab,  200, 07, , nPadLeft, )
-	//Código de barras
-	nLinCab := nLinCabOrig
-	If cTipoBar $ "1;2"
-		If cTipoBar == "1"
-			cCodBar := QRY_ORC->C5_NUM
-		ElseIf cTipoBar == "2"
-			cCodBar := QRY_ORC->C5_FILIAL+QRY_ORC->C5_NUM
-		EndIf
-		oPrintPvt:Code128C(nLinCab+90+nTamFundo, nColFin-60, cCodBar, 28)
-		oPrintPvt:SayAlign(nLinCab+92+nTamFundo, nColFin-60, cCodBar, oFontRod, 080, 07, , nPadLeft, )
-	EndIf
+	// nLinCab += 10
+
+	// oPrintPvt:SayAlign(nLinCab, nColMeio+8, "Vendedor:",                                        oFontCabN, 060, 07, , nPadLeft, )
+	// oPrintPvt:SayAlign(nLinCab, nColMeio+50, QRY_ORC->CJ_VEND1 + " - "+QRY_ORC->A3_NREDUZ,      oFontCab,  120, 07, , nPadLeft, )
+	// nLinCab += 10
+	// oPrintPvt:SayAlign(nLinCab, nColMeio+8, "Frete:",                                           oFontCabN, 060, 07, , nPadLeft, )
+	// If QRY_ORC->C5_TPFRETE == "C"
+	// 	cFretePed := "CIF"
+	// ElseIf QRY_ORC->C5_TPFRETE == "F"
+	// 	cFretePed := "FOB"
+	// ElseIf QRY_ORC->C5_TPFRETE == "T"
+	// 	cFretePed := "Terceiros"
+	// Else
+	// 	cFretePed := "Sem Frete"
+	// EndIf
+	// cFretePed += " - "+Alltrim(Transform(QRY_ORC->C5_FRETE, cMaskFrete))
+	// oPrintPvt:SayAlign(nLinCab, nColMeio+32, cFretePed,                                         oFontCab,  060, 07, , nPadLeft, )
+	// nLinCab += 13
+	// oPrintPvt:SayAlign(nLinCab, nColMeio+8, "Natureza:",                                        oFontCabN, 060, 07, , nPadLeft, )
+	// oPrintPvt:SayAlign(nLinCab, nColMeio+50, Upper(Posicione("SED",1,FwxFilial("SED")+QRY_ORC->C5_NATUREZ,"ED_DESCRIC")), oFontCab,  200, 07, , nPadLeft, )
 
 	//Ti­tulo
 	nLinCab := nLinCabOrig + 155
