@@ -421,7 +421,7 @@ Static Function fImpCab()
 	Local cCodBar     := ""
 	//Local nColMeiPed  := nColMeio+8+((nColMeio-nColIni)/2)
 	Local lCNPJ       := (QRY_ORC->A1_PESSOA != "F")
-	Local cCliAux     := QRY_ORC->C5_CLIENTE+" "+QRY_ORC->C5_LOJACLI+" - "+QRY_ORC->A1_NOME
+	Local cCliAux     := QRY_ORC->CJ_CLIENTE+" "+QRY_ORC->CJ_LOJACLI+" - "+QRY_ORC->A1_NOME
 	Local cCGC        := ""
 	Local cFretePed   := ""
 	//Dados da empresa
