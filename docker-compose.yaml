@@ -1,0 +1,136 @@
+networks:
+  network:
+    ipam:
+      driver: "default"
+      config:
+        - subnet: "172.19.0.0/24"
+          gateway: "172.19.0.1"
+
+services:
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: totvs_mssql
+    user: root
+    restart: always
+    ports:
+      - "1433:1433"
+    environment:
+      SA_PASSWORD: "MicrosoftSQL2019"
+      ACCEPT_EULA: "Y"
+    networks:
+      - network
+    volumes:
+      - ./volume/mssql/data:/var/opt/mssql/data
+
+  licenseserver:
+    image: juliansantosinfo/totvs_licenseserver:latest
+    container_name: totvs_licenseserver
+    build:
+      context: ./licenseserver
+      dockerfile: dockerfile
+    restart: always
+    ports:
+      - "2234:2234"
+      - "5555:5555"
+      - "8020:8020"
+    environment:
+      - LICENSE_TCP_PORT=2234
+      - LICENSE_CONSOLEFILE=/totvs/licenseserver/bin/appserver/licenseserver.log
+      - LICENSE_PORT=5555
+      - LICENSE_WEBAPP_PORT=8020
+    networks:
+      - network
+
+  dbaccess:
+    image: juliansantosinfo/totvs_dbaccess:latest
+    container_name: totvs_dbaccess
+    build:
+      context: ./dbaccess
+      dockerfile: dockerfile
+    restart: always
+    ports:
+      - "7890:7890"
+      - "7891:7891"
+    environment:
+      - DATABASE_PASSWORD=MicrosoftSQL2019
+      - DBACCESS_LICENSE_SERVER=totvs_licenseserver
+      - DBACCESS_LICENSE_PORT=5555
+      - DBACCESS_CONSOLEFILE=/totvs/dbaccess/multi/dbconsole.log
+    networks:
+      - network
+    depends_on:
+      - mssql
+      - licenseserver
+
+  appserver:
+    image: juliansantosinfo/totvs_appserver:latest
+    container_name: totvs_appserver
+    build:
+      context: ./appserver
+      dockerfile: dockerfile
+    restart: always
+    ports:
+      - "1234:1234"
+      - "12345:12345"
+      - "8088:8088"
+    environment:
+      - APPSERVER_RPO_CUSTOM=/totvs/protheus/apo/custom/custom.rpo
+      - APPSERVER_DBACCESS_DATABASE=MSSQL
+      - APPSERVER_DBACCESS_SERVER=totvs_dbaccess
+      - APPSERVER_DBACCESS_PORT=7890
+      - APPSERVER_DBACCESS_ALIAS=protheus
+      - APPSERVER_CONSOLEFILE=/totvs/protheus/bin/appserver/appserver.log
+      - APPSERVER_MULTIPROTOCOLPORTSECURE=0
+      - APPSERVER_MULTIPROTOCOLPORT=1
+      - APPSERVER_LICENSE_SERVER=totvs_licenseserver
+      - APPSERVER_LICENSE_PORT=5555
+      - APPSERVER_PORT=1234
+      - APPSERVER_WEB_PORT=12345
+      - APPSERVER_WEB_MANAGER=8088
+    networks:
+      - network
+    volumes:
+      - ./volume/appserver/data:/totvs/protheus_data/data
+      - ./volume/appserver/apo:/totvs/protheus/apo/custom
+    depends_on:
+      - licenseserver
+      - dbaccess
+
+  apprest:
+    image: juliansantosinfo/totvs_apprest:latest
+    container_name: totvs_apprest
+    build:
+      context: ./apprest
+      dockerfile: dockerfile
+    profiles:
+      - manual
+    restart: always
+    ports:
+      - "1235:1235"
+      - "12355:12355"
+      - "8080:8080"
+      - "8089:8089"
+    environment:
+      - APPSERVER_RPO_CUSTOM=/totvs/protheus/apo/custom/custom.rpo
+      - APPSERVER_DBACCESS_DATABASE=MSSQL
+      - APPSERVER_DBACCESS_SERVER=totvs_dbaccess
+      - APPSERVER_DBACCESS_PORT=7890
+      - APPSERVER_DBACCESS_ALIAS=protheus
+      - APPSERVER_CONSOLEFILE=/totvs/protheus/bin/appserver/appserver.log
+      - APPSERVER_MULTIPROTOCOLPORTSECURE=0
+      - APPSERVER_MULTIPROTOCOLPORT=1
+      - APPSERVER_LICENSE_SERVER=totvs_licenseserver
+      - APPSERVER_LICENSE_PORT=5555
+      - APPSERVER_PORT=1235
+      - APPSERVER_WEB_PORT=12355
+      - APPSERVER_REST_PORT=8080
+      - APPSERVER_WEB_MANAGER=8089
+    networks:
+      - network
+    volumes:
+      - ./volume/apprest/data:/totvs/protheus_data/data
+      - ./volume/apprest/apo:/totvs/protheus/apo/custom
+    depends_on:
+      - licenseserver
+      - dbaccess
