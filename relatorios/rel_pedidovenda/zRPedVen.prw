@@ -15,6 +15,7 @@ Static nPosUnid   := 0000                                                       
 Static nPosQuan   := 0000                                                                  //Posição Inicial da Coluna de Quantidade
 Static nPosVUni   := 0000                                                                  //Posição Inicial da Coluna de Valor Unitario
 Static nPosVTot   := 0000                                                                  //Posição Inicial da Coluna de Valor Total
+
 Static nPosBIcm   := 0000                                                                  //Posição Inicial da Coluna de Base Calculo ICMS
 Static nPosVIcm   := 0000                                                                  //Posição Inicial da Coluna de Valor ICMS
 Static nPosVIPI   := 0000                                                                  //Posição Inicial da Coluna de Valor Ipi
@@ -25,6 +26,7 @@ Static nPosSTVl   := 0000                                                       
 Static nPosSTBa   := 0000                                                                  //Posição Inicial da Coluna de Base do ST
 Static nPosSTTo   := 0000                                                                  //Posição Inicial da Coluna de Valor Total ST
 Static nPosEnt    := 0000                                                                  //Posição Inicial da Coluna de Data de Entrega
+
 Static nTamFundo  := 15                                                                    //Altura de fundo dos blocos com título
 Static cEmpEmail  := Alltrim(SuperGetMV("MV_X_EMAIL", .F., "email@empresa.com.br"))        //Parímetro com o e-Mail da empresa
 Static cEmpSite   := Alltrim(SuperGetMV("MV_X_HPAGE", .F., "http://www.empresa.com.br"))   //Parímetro com o site da empresa

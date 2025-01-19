@@ -15,8 +15,6 @@ Static nPosUnid   := 0000                                                       
 Static nPosQuan   := 0000                                                                  //Posição Inicial da Coluna de Quantidade
 Static nPosVUni   := 0000                                                                  //Posição Inicial da Coluna de Valor Unitario
 Static nPosVTot   := 0000                                                                  //Posição Inicial da Coluna de Valor Total
-Static nPosEnt    := 0000                                                                  //Posição Inicial da Coluna de Data de Entrega
-
 Static nTamFundo  := 15                                                                    //Altura de fundo dos blocos com título
 Static cEmpEmail  := Alltrim(SuperGetMV("MV_X_EMAIL", .F., "email@empresa.com.br"))        //Parímetro com o e-Mail da empresa
 Static cEmpSite   := Alltrim(SuperGetMV("MV_X_HPAGE", .F., "http://www.empresa.com.br"))   //Parímetro com o site da empresa
@@ -36,11 +34,10 @@ Static cMaskCPF   := "@R 999.999.999-99"                                        
 Static cMaskQtd   := PesqPict("SCK", "CK_QTDVEN")                                          //Máscara de quantidade
 Static cMaskPrc   := PesqPict("SCK", "CK_VALOR")                                          //Máscara de preço
 Static cMaskVlr   := PesqPict("SCK", "CK_VALOR")                                           //Máscara de valor
-// Static cMaskFrete := PesqPict("SCJ", "CJ_FRETE")                                           //Máscara de frete
-
+Static cMaskFrete := PesqPict("SCJ", "CJ_FRETE")                                           //Máscara de frete
 
 /*/{Protheus.doc} zROrcamento
-Impressão do orçamento (PDF)
+Impressão do orçamento
 @type function
 @author Atilio
 @since 19/06/2016
@@ -83,15 +80,26 @@ User Function zROrcamento()
 	RestArea(aArea)
 Return
 
+
+/*---------------------------------------------------------------------*
+ | Func:  fMontaRel                                                    |
+ | Desc:  FunÃ§Ã£o principal que monta o relatório                       |
+ *---------------------------------------------------------------------*/
+
 Static Function fMontaRel(oProc)
-	//Variaveis usada no controle das ríguas
+	//Variaveis usada no controle das réguas
 	Local nTotIte       := 0
 	Local nItAtu        := 0
 	Local nTotOrc       := 0
 	Local nOrcAtu       := 0
+
 	//Consultas SQL
 	Local cQryOrc       := ""
 	Local cQryIte       := ""
+
+/*/
+	// AINDA NÃO UTILIZADO // 
+
 	//Valores de Impostos
 	Local nBasICM       := 0
 	Local nValICM       := 0
@@ -102,8 +110,10 @@ Static Function fMontaRel(oProc)
 	Local nBasSol       := 0
 	Local nPrcUniSol    := 0
 	Local nTotSol       := 0
+/*/
+
 	//Variaveis do relatório
-	Local cNomeRel      := "Pedido_venda_"+FunName()+"_"+RetCodUsr()+"_"+dToS(Date())+"_"+StrTran(Time(), ":", "")
+	Local cNomeRel      := "Orcamento_"+FunName()+"_"+RetCodUsr()+"_"+dToS(Date())+"_"+StrTran(Time(), ":", "")
 	Private oPrintPvt
 	Private cHoraEx     := Time()
 	Private nPagAtu     := 1
@@ -114,6 +124,7 @@ Static Function fMontaRel(oProc)
 	Private nColIni     := 010
 	Private nColFin     := 820
 	Private nColMeio    := (nColFin-nColIni)/2
+
 	//Totalizadores
 	Private nTotFrete   := 0
 	Private nValorTot   := 0
@@ -128,14 +139,14 @@ Static Function fMontaRel(oProc)
 	DbSelectArea("SCJ")
 	
 	//Criando o objeto de Impressao
-	oPrintPvt := FWMSPrinter():New(cNomeRel, IMP_PDF, .F., /*cStartPath*/, .T., , @oPrintPvt, , , , , .T.)
+	oPrintPvt := FWMSPrinter():New(FWTimeStamp(1),IMP_PDF, .F., , .T.)
 	oPrintPvt:cPathPDF := GetTempPath()
 	oPrintPvt:SetResolution(72)
 	oPrintPvt:SetLandscape()
 	oPrintPvt:SetPaperSize(DMPAPER_A4)
 	oPrintPvt:SetMargin(10, 10, 10, 10)
 	
-//Selecionando os Orcamentos
+	//Selecionando os Orcamentos
 	cQryOrc := " SELECT "                                        + CRLF
 	cQryOrc += "    CJ_FILIAL, "                                 + CRLF
 	cQryOrc += "    CJ_NUM, "                                    + CRLF
@@ -181,7 +192,7 @@ Static Function fMontaRel(oProc)
 	Count To nTotOrc
 	oProc:SetRegua1(nTotOrc)
 	
-	//Somente se houver Pedidos
+	//Se houver algum orçamento
 	If nTotOrc != 0
 	
 		//Enquanto houver Pedidos
@@ -191,6 +202,7 @@ Static Function fMontaRel(oProc)
 				nPagAtu := 1
 			EndIf
 			nOrcAtu++
+
 			oProc:IncRegua1("Processando o Pedido "+cValToChar(nOrcAtu)+" de "+cValToChar(nTotOrc)+"...")
 			oProc:SetRegua2(1)
 			oProc:IncRegua2("...")
@@ -198,7 +210,28 @@ Static Function fMontaRel(oProc)
 			//Imprime o cabecalho
 			fImpCab()
 			
-			//Seleciona os itens do Pedido
+			/*/
+				// AINDA NÃO UTILIZADO //
+			//Inicializa os calculos de impostos
+			nItAtu    := 0
+			nTotIte   := 0
+			nTotalST  := 0
+			nTotIPI   := 0
+			nDesconto := 0
+			SCJ->(DbGoTo(QRY_ORC->C5REC))
+			MaFisIni(SCJ->C5_CLIENTE,;                   // 01 - Código Cliente/Fornecedor
+				SCJ->C5_LOJACLI,;                        // 02 - Loja do Cliente/Fornecedor
+				Iif(SCJ->C5_TIPO $ "D;B", "F", "C"),;    // 03 - C:Cliente , F:Fornecedor
+				SCJ->C5_TIPO,;                           // 04 - Tipo da NF
+				SCJ->C5_TIPOCLI,;                        // 05 - Tipo do Cliente/Fornecedor
+				MaFisRelImp("MT100", {"SF2", "SD2"}),;   // 06 - Relacao de Impostos que suportados no arquivo
+				,;                                       // 07 - Tipo de complemento
+				,;                                       // 08 - Permite Incluir Impostos no Rodape .T./.F.
+				"SB1",;                                  // 09 - Alias do Cadastro de Produtos - ("SBI" P/ Front Loja)
+				"MATA461")                               // 10 - Nome da rotina que esta utilizando a funcao
+			/*/
+
+			//Seleciona agora os itens do Pedido
 			cQryIte := " SELECT "                                      + CRLF
 			cQryIte += "    CK_PRODUTO, "                              + CRLF
 			cQryIte += "    ISNULL(B1_DESC, '') AS B1_DESC, "          + CRLF
@@ -207,6 +240,7 @@ Static Function fMontaRel(oProc)
 			cQryIte += "    CK_ENTREG, "                               + CRLF
 			cQryIte += "    CK_QTDVEN, "                               + CRLF
 			cQryIte += "    CK_PRCVEN, "                               + CRLF
+			cQryIte += "    CK_DESCONT, "                              + CRLF
 			cQryIte += "    CK_VALOR "                                 + CRLF
 			cQryIte += " FROM "                                        + CRLF
 			cQryIte += "    "+RetSQLName("SCK")+" SCK "                + CRLF
@@ -217,40 +251,107 @@ Static Function fMontaRel(oProc)
 			cQryIte += "    ) "                                        + CRLF
 			cQryIte += " WHERE "                                       + CRLF
 			cQryIte += "    CK_FILIAL = '"+FWxFilial("SCK")+"' "       + CRLF
-			cQryIte += "    AND CK_NUM = '"+QRY_ORC->CJ_NUM+"' "       + CRLF
+			cQryIte += "    AND CK_NUM = '"+QRY_ORC->CK_NUM+"' "       + CRLF
 			cQryIte += "    AND SCK.D_E_L_E_T_ = ' ' "                 + CRLF
 			cQryIte += " ORDER BY "                                    + CRLF
 			cQryIte += "    CK_ITEM "                                  + CRLF
+			
 			TCQuery cQryIte New Alias "QRY_ITE"
 			TCSetField("QRY_ITE", "CK_ENTREG", "D")
 			Count To nTotIte
 			nValorTot := 0
 			oProc:SetRegua2(nTotIte)
 			
+			/*/ 
+				// AINDA NÃO UTILIZADO //
 			//Enquanto houver itens
 			QRY_ITE->(DbGoTop())
 			While ! QRY_ITE->(EoF())
 				nItAtu++
 				oProc:IncRegua2("Calculando impostos - item "+cValToChar(nItAtu)+" de "+cValToChar(nTotIte)+"...")
-  
-				// nValSol    := (MaFisRet(nItAtu,"IT_VALSOL") / QRY_ITE->CK_QTDVEN) 
-				// nTotSol    := nPrcUniSol * QRY_ITE->CK_QTDVEN
+				
+				//Pega os tratamentos de impostos
+				SB1->(DbSeek(FWxFilial("SB1")+QRY_ITE->C6_PRODUTO))
+				MaFisAdd(QRY_ITE->C6_PRODUTO,;    // 01 - Código do Produto                    ( Obrigatorio )
+					QRY_ITE->CK_TES,;             // 02 - Código do TES                        ( Opcional )
+					QRY_ITE->CK_QTDVEN,;          // 03 - Quantidade                           ( Obrigatorio )
+					QRY_ITE->CK_PRCVEN,;          // 04 - Preco Unitario                       ( Obrigatorio )
+					0,;         				  // 05 - Desconto
+					QRY_ITE->CK_NFORI,;           // 06 - Número da NF Original                ( Devolucao/Benef )
+					QRY_ITE->CK_SERIORI,;         // 07 - Serie da NF Original                 ( Devolucao/Benef )
+					0,;                           // 08 - RecNo da NF Original no arq SD1/SD2
+					0,;                           // 09 - Valor do Frete do Item               ( Opcional )
+					0,;                           // 10 - Valor da Despesa do item             ( Opcional )
+					0,;                           // 11 - Valor do Seguro do item              ( Opcional )
+					0,;                           // 12 - Valor do Frete Autonomo              ( Opcional )
+					QRY_ITE->CK_VALOR,;           // 13 - Valor da Mercadoria                  ( Obrigatorio )
+					0,;                           // 14 - Valor da Embalagem                   ( Opcional )
+					SB1->(RecNo()),;              // 15 - RecNo do SB1
+					0)                            // 16 - RecNo do SF4
+				
+				nQtdPeso := QRY_ITE->C6_QTDVEN*SB1->B1_PESO
+				MaFisLoad("IT_VALMERC", QRY_ITE->C6_VALOR, nItAtu)				
+				MaFisAlt("IT_PESO", nQtdPeso, nItAtu)
+				
+				QRY_ITE->(DbSkip())
+			EndDo
+			/*/ 
 
+			//Altera dados da Nota
+			// MaFisAlt("NF_FRETE", SCJ->CJ_FRETE)
+			// MaFisAlt("NF_SEGURO", SCJ->CJ_SEGURO)
+			//MaFisAlt("NF_DESPESA", SCJ->C5_DESPESA) 
+			// MaFisAlt("NF_AUTONOMO", SCJ->C5_FRETAUT)
 
-				//Imprime os dados
+			If SCJ->CJ_DESCONT > 0
+				MaFisAlt("NF_DESCONTO", Min(MaFisRet(, "NF_VALMERC")-0.01, SCJ->CJ_DESCONT+MaFisRet(, "NF_DESCONTO")) )
+			EndIf
+
+			// If SCJ->C5_PDESCAB > 0
+			// 	MaFisAlt("NF_DESCONTO", A410Arred(MaFisRet(, "NF_VALMERC")*SCJ->C5_PDESCAB/100, "C6_VALOR") + MaFisRet(, "NF_DESCONTO"))
+			// EndIf
 			
+			//Enquanto houver itens
+			oProc:IncRegua2("...")
+			oProc:SetRegua2(nTotIte)
+			nItAtu := 0
+			QRY_ITE->(DbGoTop())
+			While ! QRY_ITE->(EoF())
+				nItAtu++
+				oProc:IncRegua2("Imprimindo item "+cValToChar(nItAtu)+" de "+cValToChar(nTotIte)+"...")
+				
+				// //Pega os tratamentos de impostos
+				// SB1->(DbSeek(FWxFilial("SB1")+QRY_ITE->CK_PRODUTO))
+				
+				// //Pega os valores
+				// nBasICM    := MaFisRet(nItAtu, "IT_BASEICM")
+				// nValICM    := MaFisRet(nItAtu, "IT_VALICM")
+				// nValIPI    := MaFisRet(nItAtu, "IT_VALIPI")
+				// nAlqICM    := MaFisRet(nItAtu, "IT_ALIQICM")
+				// nAlqIPI    := MaFisRet(nItAtu, "IT_ALIQIPI")
+				// nValSol    := (MaFisRet(nItAtu,"IT_VALSOL") / QRY_ITE->C6_QTDVEN) 
+				// nBasSol    := MaFisRet(nItAtu, "IT_BASESOL")
+				// nPrcUniSol := QRY_ITE->C6_PRCVEN + nValSol
+				// nTotSol    := nPrcUniSol * QRY_ITE->C6_QTDVEN
+				// nTotalST   += MaFisRet(nItAtu, "IT_VALSOL")
+				// nTotIPI    += nValIPI
+				// nDesconto  += QRY_ITE->C6_VALDESC
+				
+				//Imprime os dados
+	
 					oPrintPvt:SayAlign(nLinAtu, nPosCod, QRY_ITE->CK_PRODUTO,                                oFontDet, 200, 35, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosDesc, QRY_ITE->B1_DESC,                                  oFontDet, 200, 07, , nPadLeft,)
+					oPrintPvt:SayAlign(nLinAtu, nPosDesc, QRY_ITE->CK_DESCONT,                                  oFontDet, 200, 07, , nPadLeft,)
 					oPrintPvt:SayAlign(nLinAtu, nPosUnid, QRY_ITE->CK_UM,                                    oFontDet, 030, 07, , nPadLeft,)
 					oPrintPvt:SayAlign(nLinAtu, nPosNCM , QRY_ITE->B1_POSIPI,                                oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosQuan, Alltrim(Transform(QRY_ITE->CK_QTDVEN, cMaskQtd)),  oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosVUni, Alltrim(Transform(QRY_ITE->CK_PRCVEN, cMaskPrc)),  oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosVTot, Alltrim(Transform(QRY_ITE->CK_VALOR, cMaskVlr)),   oFontDet, 050, 07, , nPadLeft,)
+					// oPrintPvt:SayAlign(nLinAtu, nPosQuan, Alltrim(Transform(QRY_ITE->C6_QTDVEN, cMaskQtd)),  oFontDet, 050, 07, , nPadLeft,)
+					// oPrintPvt:SayAlign(nLinAtu, nPosVUni, Alltrim(Transform(QRY_ITE->C6_PRCVEN, cMaskPrc)),  oFontDet, 050, 07, , nPadLeft,)
+					// oPrintPvt:SayAlign(nLinAtu, nPosVTot, Alltrim(Transform(QRY_ITE->C6_VALOR, cMaskVlr)),   oFontDet, 050, 07, , nPadLeft,)
 					// oPrintPvt:SayAlign(nLinAtu, nPosSTVl, Alltrim(Transform(nPrcUniSol, cMaskPrc)),          oFontDet, 050, 07, , nPadLeft,)
 					// oPrintPvt:SayAlign(nLinAtu, nPosSTTo, Alltrim(Transform(nTotSol, cMaskVlr)),             oFontDet, 050, 07, , nPadLeft,) 
 					// oPrintPvt:SayAlign(nLinAtu, nPosAIcm, Alltrim(Transform(nAlqICM, cMaskPad)),             oFontDet, 050, 07, , nPadLeft,)
-					oPrintPvt:SayAlign(nLinAtu, nPosEnt , DToC(QRY_ITE->CK_ENTREG),                          oFontDet, 050, 07, , nPadLeft,)
-				
+					// oPrintPvt:SayAlign(nLinAtu, nPosEnt , DToC(QRY_ITE->C6_ENTREG),                          oFontDet, 050, 07, , nPadLeft,)
+			
+
 				nLinAtu += 10
 				
 				//Se por acaso atingiu o limite da pagina, finaliza, e começa uma nova pagina
@@ -262,19 +363,14 @@ Static Function fMontaRel(oProc)
 				nValorTot += QRY_ITE->CK_VALOR
 				QRY_ITE->(DbSkip())
 			EndDo
-			// nTotFrete := MaFisRet(, "NF_FRETE")
+			nTotFrete := MaFisRet(, "NF_FRETE")
 			nTotVal := MaFisRet(, "NF_TOTAL")
-			// fMontDupl()
+			fMontDupl()
 			QRY_ITE->(DbCloseArea())
 			MaFisEnd()
 			
 			//Imprime o Total do Pedido
 			fImpTot()
-			
-			//Se tiver mensagem da observacao
-			// If !Empty(QRY_ORC->CJ_MENNOTA)
-			// 	fMsgObs()
-			// EndIf
 			
 			//Se deveria ser impresso as duplicatas
 			If cImpDupl == "1"
@@ -291,23 +387,26 @@ Static Function fMontaRel(oProc)
 		oPrintPvt:Preview()
 	
 	Else
-		MsgStop("Não há Pedidos!  ", "Atenção")
+		MsgStop("Não há Pedidos!", "Atenção")
 	EndIf
 	QRY_ORC->(DbCloseArea())
 Return
 
-
+/*---------------------------------------------------------------------*
+ | Func:  fImpCab                                                      |
+ | Desc:  Funcao que imprime o cabecalho                               |
+ *---------------------------------------------------------------------*/
 
 Static Function fImpCab()
 	//Local cTexto      := ""
 	Local nLinCab     := 025
 	Local nLinCabOrig := nLinCab
-	// Local cCodBar     := ""
+	Local cCodBar     := ""
 	//Local nColMeiPed  := nColMeio+8+((nColMeio-nColIni)/2)
 	Local lCNPJ       := (QRY_ORC->A1_PESSOA != "F")
 	Local cCliAux     := QRY_ORC->CJ_CLIENTE+" "+QRY_ORC->CJ_LOJA+" - "+QRY_ORC->A1_NOME
 	Local cCGC        := ""
-	// Local cFretePed   := ""
+	Local cFretePed   := ""
 	//Dados da empresa
 	Local cEmpresa    := Iif(Empty(SM0->M0_NOMECOM), Alltrim(SM0->M0_NOME), Alltrim(SM0->M0_NOMECOM))
 	Local cEmpTel     := Alltrim(Transform(SubStr(SM0->M0_TEL, 1, Len(SM0->M0_TEL)), cMaskTel))
@@ -394,33 +493,26 @@ Static Function fImpCab()
 	oPrintPvt:SayAlign(nLinCab, nColMeio+100, QRY_ORC->A1_BAIRRO, 								oFontCab,  130, 07, , nPadLeft, )
 	oPrintPvt:SayAlign(nLinCab, nColMeio+200,","+QRY_ORC->A1_MUN,	 							oFontCab,  180, 07, , nPadLeft, )
 	oPrintPvt:SayAlign(nLinCab, nColMeio+300," - "+QRY_ORC->A1_EST,								oFontCab,  200, 07, , nPadLeft, )
-	nLinCab += 10
-	// If QRY_ORC->CJ_TPFRETE == "C"
+	// nLinCab += 10
+
+	// oPrintPvt:SayAlign(nLinCab, nColMeio+8, "Vendedor:",                                        oFontCabN, 060, 07, , nPadLeft, )
+	// oPrintPvt:SayAlign(nLinCab, nColMeio+50, QRY_ORC->CJ_VEND1 + " - "+QRY_ORC->A3_NREDUZ,      oFontCab,  120, 07, , nPadLeft, )
+	// nLinCab += 10
+	// oPrintPvt:SayAlign(nLinCab, nColMeio+8, "Frete:",                                           oFontCabN, 060, 07, , nPadLeft, )
+	// If QRY_ORC->C5_TPFRETE == "C"
 	// 	cFretePed := "CIF"
-	// ElseIf QRY_ORC->CJ_TPFRETE == "F"
+	// ElseIf QRY_ORC->C5_TPFRETE == "F"
 	// 	cFretePed := "FOB"
-	// ElseIf QRY_ORC->CJ_TPFRETE == "T"
+	// ElseIf QRY_ORC->C5_TPFRETE == "T"
 	// 	cFretePed := "Terceiros"
 	// Else
 	// 	cFretePed := "Sem Frete"
 	// EndIf
-	// cFretePed += " - "+Alltrim(Transform(QRY_ORC->CJ_FRETE, cMaskFrete))
+	// cFretePed += " - "+Alltrim(Transform(QRY_ORC->C5_FRETE, cMaskFrete))
 	// oPrintPvt:SayAlign(nLinCab, nColMeio+32, cFretePed,                                         oFontCab,  060, 07, , nPadLeft, )
 	// nLinCab += 13
 	// oPrintPvt:SayAlign(nLinCab, nColMeio+8, "Natureza:",                                        oFontCabN, 060, 07, , nPadLeft, )
-	// oPrintPvt:SayAlign(nLinCab, nColMeio+50, Upper(Posicione("SED",1,FwxFilial("SED")+QRY_ORC->CJ_NATUREZ,"ED_DESCRIC")), oFontCab,  200, 07, , nPadLeft, )
-
-	//Código de barras
-	nLinCab := nLinCabOrig
-	// If cTipoBar $ "1;2"
-	// 	If cTipoBar == "1"
-	// 		cCodBar := QRY_ORC->CJ_NUM
-	// 	ElseIf cTipoBar == "2"
-	// 		cCodBar := QRY_ORC->CJ_FILIAL+QRY_ORC->CJ_NUM
-	// 	EndIf
-	// 	oPrintPvt:Code128C(nLinCab+90+nTamFundo, nColFin-60, cCodBar, 28)
-	// 	oPrintPvt:SayAlign(nLinCab+92+nTamFundo, nColFin-60, cCodBar, oFontRod, 080, 07, , nPadLeft, )
-	// EndIf
+	// oPrintPvt:SayAlign(nLinCab, nColMeio+50, Upper(Posicione("SED",1,FwxFilial("SED")+QRY_ORC->C5_NATUREZ,"ED_DESCRIC")), oFontCab,  200, 07, , nPadLeft, )
 
 	//Ti­tulo
 	nLinCab := nLinCabOrig + 155
@@ -440,8 +532,8 @@ Static Function fImpCab()
 		oPrintPvt:SayAlign(nLinCab,   nPosNCM , "NCM"      ,        oFontDetN, 050, 07, , nPadLeft,)
 		oPrintPvt:SayAlign(nLinCab,   nPosQuan, "Quant.",           oFontDetN, 050, 07, , nPadLeft,)
 		oPrintPvt:SayAlign(nLinCab,   nPosVUni, "Prc. Unit.",		oFontDetN, 050, 07, , nPadLeft,)
-		oPrintPvt:SayAlign(nLinCab+10, nPosVUni, "Livre Imp.", 		oFontDetN, 050, 07, , nPadLeft,)
-		// oPrintPvt:SayAlign(nLinCab,   nPosVTot, "Vlr. Total", 		oFontDetN, 050, 07, , nPadLeft,)
+		// oPrintPvt:SayAlign(nLinCab+10, nPosVUni, "Livre Imp.", 		oFontDetN, 050, 07, , nPadLeft,)
+		oPrintPvt:SayAlign(nLinCab,   nPosVTot, "Vlr. Total", 		oFontDetN, 050, 07, , nPadLeft,)
 		// oPrintPvt:SayAlign(nLinCab+10, nPosVTot, "Livre Imp.", 		oFontDetN, 050, 07, , nPadLeft,)
 		// oPrintPvt:SayAlign(nLinCab,   nPosSTVl, "Prc. Unit.",       oFontDetN, 050, 07, , nPadLeft,)
 		// oPrintPvt:SayAlign(nLinCab+10, nPosSTVl, "+ Imposto",       oFontDetN, 050, 07, , nPadLeft,)
@@ -454,193 +546,171 @@ Static Function fImpCab()
 	nLinAtu := nLinCab + 20
 Return
 
-
 /*---------------------------------------------------------------------*
  | Func:  fImpRod                                                      |
  | Desc:  Funcao que imprime o rodape                                  |
  *---------------------------------------------------------------------*/
 
-Static Function fImpRod()
-	Local nLinRod:= nLinFin + 10
-	Local cTexto := ""
+// Static Function fImpRod()
+// 	Local nLinRod:= nLinFin + 10
+// 	Local cTexto := ""
 	
-	//Linha SeparatÃ³ria
-	oPrintPvt:Line(nLinRod, nColIni, nLinRod, nColFin)
-	nLinRod += 3
+// 	//Linha SeparatÃ³ria
+// 	oPrintPvt:Line(nLinRod, nColIni, nLinRod, nColFin)
+// 	nLinRod += 3
 
-	//Dados da Esquerda
-	cTexto := "Pedido: "+QRY_ORC->CJ_NUM+"    |    "+dToC(dDataBase)+"     "+cHoraEx+"     "+FunName()+"     "+cUserName
-	oPrintPvt:SayAlign(nLinRod, nColIni,    cTexto, oFontRod, 250, 07, , nPadLeft, )
+// 	//Dados da Esquerda
+// 	cTexto := "Pedido: "+QRY_ORC->C5_NUM+"    |    "+dToC(dDataBase)+"     "+cHoraEx+"     "+FunName()+"     "+cUserName
+// 	oPrintPvt:SayAlign(nLinRod, nColIni,    cTexto, oFontRod, 250, 07, , nPadLeft, )
 	
-	//Direita
-	cTexto := "Página "+cValToChar(nPagAtu)
-	oPrintPvt:SayAlign(nLinRod, nColFin-40, cTexto, oFontRod, 040, 07, , nPadRight, )
+// 	//Direita
+// 	cTexto := "Página "+cValToChar(nPagAtu)
+// 	oPrintPvt:SayAlign(nLinRod, nColFin-40, cTexto, oFontRod, 040, 07, , nPadRight, )
 	
-	//Finalizando a Página e somando mais um
-	oPrintPvt:EndPage()
-	nPagAtu++
-Return
+// 	//Finalizando a Página e somando mais um
+// 	oPrintPvt:EndPage()
+// 	nPagAtu++
+// Return
 
-/*---------------------------------------------------------------------*
- | Func:  fLogoEmp                                                     |
- | Desc:  Funcao que retorna o logo da empresa (igual a DANFE)         |
- *---------------------------------------------------------------------*/
+// /*---------------------------------------------------------------------*
+//  | Func:  fLogoEmp                                                     |
+//  | Desc:  Funcao que retorna o logo da empresa (igual a DANFE)         |
+//  *---------------------------------------------------------------------*/
 
-Static Function fLogoEmp()
-	Local cGrpCompany := AllTrim(FWGrpCompany())
-	Local cCodEmpGrp  := AllTrim(FWCodEmp())
-	Local cUnitGrp    := AllTrim(FWUnitBusiness())
-	Local cFilGrp     := AllTrim(FWFilial())
-	Local cLogo       := ""
-	Local cCamFim     := GetTempPath()
-	Local cStart      := GetSrvProfString("Startpath", "")
+// Static Function fLogoEmp()
+// 	Local cGrpCompany := AllTrim(FWGrpCompany())
+// 	Local cCodEmpGrp  := AllTrim(FWCodEmp())
+// 	Local cUnitGrp    := AllTrim(FWUnitBusiness())
+// 	Local cFilGrp     := AllTrim(FWFilial())
+// 	Local cLogo       := ""
+// 	Local cCamFim     := GetTempPath()
+// 	Local cStart      := GetSrvProfString("Startpath", "")
 
-	//Se tiver filiais por grupo de empresas
-	If !Empty(cUnitGrp)
-		cDescLogo	:= cGrpCompany + cCodEmpGrp + cUnitGrp + cFilGrp
+// 	//Se tiver filiais por grupo de empresas
+// 	If !Empty(cUnitGrp)
+// 		cDescLogo	:= cGrpCompany + cCodEmpGrp + cUnitGrp + cFilGrp
 		
-	//Se nao, será apenas, empresa + filial
-	Else
-		cDescLogo	:= cEmpAnt + cFilAnt
-	EndIf
+// 	//Se nao, será apenas, empresa + filial
+// 	Else
+// 		cDescLogo	:= cEmpAnt + cFilAnt
+// 	EndIf
 	
-	//Pega a imagem
-	cLogo := cStart + "LGMID" + cDescLogo + ".PNG"
+// 	//Pega a imagem
+// 	cLogo := cStart + "LGMID" + cDescLogo + ".PNG"
 	
-	//Se o arquivo Nao existir, pega apenas o da empresa, desconsiderando a filial
-	If !File(cLogo)
-		cLogo	:= cStart + "LGMID" + cEmpAnt + ".PNG"
-	EndIf
+// 	//Se o arquivo Nao existir, pega apenas o da empresa, desconsiderando a filial
+// 	If !File(cLogo)
+// 		cLogo	:= cStart + "LGMID" + cEmpAnt + ".PNG"
+// 	EndIf
 	
-	//Copia para a temporaria do s.o.
-	CpyS2T(cLogo, cCamFim)
-	cLogo := cCamFim + StrTran(cLogo, cStart, "")
+// 	//Copia para a temporaria do s.o.
+// 	CpyS2T(cLogo, cCamFim)
+// 	cLogo := cCamFim + StrTran(cLogo, cStart, "")
 	
-	//Se o arquivo Nao existir na temporaria, espera meio segundo para terminar a cópia
-	If !File(cLogo)
-		Sleep(500)
-	EndIf
-Return cLogo
+// 	//Se o arquivo Nao existir na temporaria, espera meio segundo para terminar a cópia
+// 	If !File(cLogo)
+// 		Sleep(500)
+// 	EndIf
+// Return cLogo
 
-/*---------------------------------------------------------------------*
- | Func:  fMudaLayout                                                  |
- | Desc:  Funcao que muda as variaveis das colunas do layout           |
- *---------------------------------------------------------------------*/
+// /*---------------------------------------------------------------------*
+//  | Func:  fImpTot                                                      |
+//  | Desc:  Funcao para imprimir os totais                               |
+//  *---------------------------------------------------------------------*/
 
-Static Function fMudaLayout()
-	oFontRod   := TFont():New(cNomeFont, , -06, , .F.)
-	oFontTit   := TFont():New(cNomeFont, , -15, , .T.)
-	oFontCab   := TFont():New(cNomeFont, , -10, , .F.)
-	oFontCabN  := TFont():New(cNomeFont, , -10, , .T.)
+// Static Function fImpTot()
+// 	nLinAtu += 7
 	
+// 	//Se atingir o fim da Página, quebra
+// 	If nLinAtu + 50 >= nLinFin
+// 		fImpRod()
+// 		fImpCab()
+// 	EndIf
 	
-		nPosCod  := 0010 //Código do Produto 
-		nPosDesc := 0100 //Descricao
-		nPosUnid := 0400 //Unidade de Medida
-		nPosNCM  := 0435 //NCM
-		nPosQuan := 0490 //Quantidade
-		nPosVUni := 0530 //Valor Unitario
-		nPosVTot := 0580 //Valor Total
-		// nPosSTVl := 0630 //Valor Unitario + ST
-		// nPosSTTo := 0680 //Valor Total ST
-		// nPosAIcm := 0730 //Aliquota ICMS
-		nPosEnt  := 0780 //Entrega
+// 	//Cria o grupo de Total
+// 	oPrintPvt:Box(nLinAtu, nColIni, nLinAtu + 070, nColFin)
+// 	oPrintPvt:Line(nLinAtu+nTamFundo, nColIni, nLinAtu+nTamFundo, nColFin)
+// 	nLinAtu += nTamFundo - 5
+// 	oPrintPvt:SayAlign(nLinAtu-10, nColIni+5, "Totais:",                                         oFontTit,  060, nTamFundo, nCorAzul, nPadLeft, )
+// 	nLinAtu += 7
+// 	oPrintPvt:SayAlign(nLinAtu, nColIni+0005, "Valor do Frete: ",                                oFontCab,  080, 07, , nPadLeft, )
+// 	oPrintPvt:SayAlign(nLinAtu, nColIni+0095, Alltrim(Transform(nTotFrete, cMaskFrete)),         oFontCabN, 080, 07, , nPadRight, )
+// 	oPrintPvt:SayAlign(nLinAtu, nColMeio+005, "Peso.Liq.:",                                      oFontCab,  080, 07, , nPadLeft, )
+// 	oPrintPvt:SayAlign(nLinAtu, nColMeio+095, Alltrim(Transform(QRY_ORC->C5_PESOL, cMaskPLiq)),  oFontCabN, 080, 07, , nPadRight, )
+// 	nLinAtu += 10
+// 	oPrintPvt:SayAlign(nLinAtu, nColIni+0005, "Valor Total dos Descontos: ",                     oFontCab,  150, 07, , nPadLeft, )
+// 	oPrintPvt:SayAlign(nLinAtu, nColIni+0095, Alltrim(Transform(nDesconto, cMaskVlr)),           oFontCabN, 080, 07, , nPadRight, )
+// 	oPrintPvt:SayAlign(nLinAtu, nColMeio+005, "Peso.Bru:",                                       oFontCab,  080, 07, , nPadLeft, )
+// 	oPrintPvt:SayAlign(nLinAtu, nColMeio+095, Alltrim(Transform(QRY_ORC->C5_PBRUTO, cMaskPBru)), oFontCabN, 080, 07, , nPadRight, )
+// 	nLinAtu += 10
+// 	oPrintPvt:SayAlign(nLinAtu, nColIni+0005, "Valor Total dos Produtos: ",                      oFontCab,  150, 07, , nPadLeft, )
+// 	oPrintPvt:SayAlign(nLinAtu, nColIni+0095, Alltrim(Transform(nValorTot, cMaskVlr)),           oFontCabN, 080, 07, , nPadRight, )
+// 	nLinAtu += 10
+// 	oPrintPvt:SayAlign(nLinAtu, nColIni+0005, "Valor do ICMS Substituição: ",                    oFontCab,  0150, 07, , nPadLeft, )
+// 	oPrintPvt:SayAlign(nLinAtu, nColIni+0095, Alltrim(Transform(nTotalST, cMaskVlr)),            oFontCabN, 080, 07, , nPadRight, )
+// 	oPrintPvt:SayAlign(nLinAtu, nColMeio+005, "Valor do IPI:",                                   oFontCab,  080, 07, , nPadLeft, )
+// 	oPrintPvt:SayAlign(nLinAtu, nColMeio+095, Alltrim(Transform(nTotIPI, cMaskVlr)),             oFontCabN, 080, 07, , nPadRight, )
+// 	nLinAtu += 10
+// 	oPrintPvt:SayAlign(nLinAtu, nColIni+0005, "Valor Total do Pedido: ",                         oFontCab,  080, 07, , nPadLeft, )
+// 	oPrintPvt:SayAlign(nLinAtu, nColIni+0095, Alltrim(Transform(nTotVal, cMaskVlr)),             oFontCabN, 080, 07, , nPadRight, )
+// 	nLinAtu += 20
+// Return
+
+// /*---------------------------------------------------------------------*
+//  | Func:  fMsgObs                                                      |
+//  | Desc:  Funcao para imprimir mensagem de observação                  |
+//  *---------------------------------------------------------------------*/
+
+// Static Function fMsgObs()
+// 	Local aMsg  := {"", "", ""}
+// 	Local nQueb := 100
+// 	Local cMsg  := Alltrim(QRY_ORC->C5_MENNOTA)
+// 	nLinAtu += 4
+	
+// 	//Se atingir o fim da Página, quebra
+// 	If nLinAtu + 40 >= nLinFin
+// 		fImpRod()
+// 		fImpCab()
+// 	EndIf
+	
+// 	//Quebrando a mensagem
+// 	If Len(cMsg) > nQueb
+// 		aMsg[1] := SubStr(cMsg,    1, nQueb)
+// 		aMsg[1] := SubStr(aMsg[1], 1, RAt(' ', aMsg[1]))
 		
-		oFontDet   := TFont():New(cNomeFont, , -10, , .F.)
-		oFontDetN  := TFont():New(cNomeFont, , -10, , .T.)
-		
-Return
-
-/*---------------------------------------------------------------------*
- | Func:  fImpTot                                                      |
- | Desc:  Funcao para imprimir os totais                               |
- *---------------------------------------------------------------------*/
-
-Static Function fImpTot()
-	nLinAtu += 7
-	
-	//Se atingir o fim da Página, quebra
-	If nLinAtu + 50 >= nLinFin
-		fImpRod()
-		fImpCab()
-	EndIf
-	
-	//Cria o grupo de Total
-	oPrintPvt:Box(nLinAtu, nColIni, nLinAtu + 070, nColFin)
-	oPrintPvt:Line(nLinAtu+nTamFundo, nColIni, nLinAtu+nTamFundo, nColFin)
-	nLinAtu += nTamFundo - 5
-	oPrintPvt:SayAlign(nLinAtu-10, nColIni+5, "Totais:",                                         oFontTit,  060, nTamFundo, nCorAzul, nPadLeft, )
-	nLinAtu += 7
-	oPrintPvt:SayAlign(nLinAtu, nColIni+0005, "Valor do Frete: ",                                oFontCab,  080, 07, , nPadLeft, )
-	// oPrintPvt:SayAlign(nLinAtu, nColIni+0095, Alltrim(Transform(nTotFrete, cMaskFrete)),         oFontCabN, 080, 07, , nPadRight, )
-	oPrintPvt:SayAlign(nLinAtu, nColMeio+005, "Peso.Liq.:",                                      oFontCab,  080, 07, , nPadLeft, )
-	nLinAtu += 10
-	oPrintPvt:SayAlign(nLinAtu, nColIni+0005, "Valor Total dos Descontos: ",                     oFontCab,  150, 07, , nPadLeft, )
-	// oPrintPvt:SayAlign(nLinAtu, nColIni+0095, Alltrim(Transform(nDesconto, cMaskVlr)),           oFontCabN, 080, 07, , nPadRight, )
-	oPrintPvt:SayAlign(nLinAtu, nColMeio+005, "Peso.Bru:",                                       oFontCab,  080, 07, , nPadLeft, )
-
-	nLinAtu += 10
-	oPrintPvt:SayAlign(nLinAtu, nColIni+0005, "Valor Total dos Produtos: ",                      oFontCab,  150, 07, , nPadLeft, )
-	oPrintPvt:SayAlign(nLinAtu, nColIni+0095, Alltrim(Transform(nValorTot, cMaskVlr)),           oFontCabN, 080, 07, , nPadRight, )
-
-
-Return
-
-/*---------------------------------------------------------------------*
- | Func:  fMsgObs                                                      |
- | Desc:  Funcao para imprimir mensagem de observação                  |
- *---------------------------------------------------------------------*/
-
-Static Function fMsgObs()
-	Local aMsg  := {"", "", ""}
-	Local nQueb := 100
-	Local cMsg  := ""
-	nLinAtu += 4
-	
-	//Se atingir o fim da Página, quebra
-	If nLinAtu + 40 >= nLinFin
-		fImpRod()
-		fImpCab()
-	EndIf
-	
-	//Quebrando a mensagem
-	If Len(cMsg) > nQueb
-		aMsg[1] := SubStr(cMsg,    1, nQueb)
-		aMsg[1] := SubStr(aMsg[1], 1, RAt(' ', aMsg[1]))
-		
-		//Pegando o restante e adicionando nas outras linhas
-		cMsg := Alltrim(SubStr(cMsg, Len(aMsg[1])+1, Len(cMsg)))
-		If Len(cMsg) > nQueb
-			aMsg[2] := SubStr(cMsg,    1, nQueb)
-			aMsg[2] := SubStr(aMsg[2], 1, RAt(' ', aMsg[2]))
+// 		//Pegando o restante e adicionando nas outras linhas
+// 		cMsg := Alltrim(SubStr(cMsg, Len(aMsg[1])+1, Len(cMsg)))
+// 		If Len(cMsg) > nQueb
+// 			aMsg[2] := SubStr(cMsg,    1, nQueb)
+// 			aMsg[2] := SubStr(aMsg[2], 1, RAt(' ', aMsg[2]))
 			
-			cMsg := Alltrim(SubStr(cMsg, Len(aMsg[2])+1, Len(cMsg)))
-			aMsg[3] := cMsg
-		Else
-			aMsg[2] := cMsg
-		EndIf
-	Else
-		aMsg[1] := cMsg
-	EndIf
+// 			cMsg := Alltrim(SubStr(cMsg, Len(aMsg[2])+1, Len(cMsg)))
+// 			aMsg[3] := cMsg
+// 		Else
+// 			aMsg[2] := cMsg
+// 		EndIf
+// 	Else
+// 		aMsg[1] := cMsg
+// 	EndIf
 	
-	//Cria o grupo de observação
-	oPrintPvt:Box(nLinAtu, nColIni, nLinAtu + 038, nColFin)
-	oPrintPvt:Line(nLinAtu+nTamFundo, nColIni, nLinAtu+nTamFundo, nColFin)
-	nLinAtu += nTamFundo - 5
-	oPrintPvt:SayAlign(nLinAtu-10, nColIni+5, "Observacao:",                oFontTit,  100, nTamFundo, nCorAzul, nPadLeft, )
-	nLinAtu += 5
-	oPrintPvt:SayAlign(nLinAtu, nColIni+0005, aMsg[1],                      oFontCab,  400, 07, , nPadLeft, )
-	nLinAtu += 7
-	oPrintPvt:SayAlign(nLinAtu, nColIni+0005, aMsg[2],                      oFontCab,  400, 07, , nPadLeft, )
-	nLinAtu += 7
-	oPrintPvt:SayAlign(nLinAtu, nColIni+0005, aMsg[3],                      oFontCab,  400, 07, , nPadLeft, )
-	nLinAtu += 10
-Return
+// 	//Cria o grupo de observação
+// 	oPrintPvt:Box(nLinAtu, nColIni, nLinAtu + 038, nColFin)
+// 	oPrintPvt:Line(nLinAtu+nTamFundo, nColIni, nLinAtu+nTamFundo, nColFin)
+// 	nLinAtu += nTamFundo - 5
+// 	oPrintPvt:SayAlign(nLinAtu-10, nColIni+5, "Observacao:",                oFontTit,  100, nTamFundo, nCorAzul, nPadLeft, )
+// 	nLinAtu += 5
+// 	oPrintPvt:SayAlign(nLinAtu, nColIni+0005, aMsg[1],                      oFontCab,  400, 07, , nPadLeft, )
+// 	nLinAtu += 7
+// 	oPrintPvt:SayAlign(nLinAtu, nColIni+0005, aMsg[2],                      oFontCab,  400, 07, , nPadLeft, )
+// 	nLinAtu += 7
+// 	oPrintPvt:SayAlign(nLinAtu, nColIni+0005, aMsg[3],                      oFontCab,  400, 07, , nPadLeft, )
+// 	nLinAtu += 10
+// Return
 
-/*---------------------------------------------------------------------*
- | Func:  fMontDupl                                                    |
- | Desc:  FunÃ§Ã£o que monta o array de duplicatas                       |
- *---------------------------------------------------------------------*/
+// /*---------------------------------------------------------------------*
+//  | Func:  fMontDupl                                                    |
+//  | Desc:  FunÃ§Ã£o que monta o array de duplicatas                       |
+//  *---------------------------------------------------------------------*/
 
 // Static Function fMontDupl()
 // 	Local aArea    := GetArea()
@@ -657,14 +727,14 @@ Return
 // 	//Posiciona na condiÃ§Ã£o de pagamento
 // 	DbSelectarea("SE4")
 // 	SE4->(DbSetOrder(1))
-// 	SE4->(DbSeek(xFilial("SE4")+SCJ->CJ_CONDPAG))
+// 	SE4->(DbSeek(xFilial("SE4")+SCJ->C5_CONDPAG))
 	
 // 	//Se na planilha financeira do Pedido de Venda as duplicatas serÃ£o separadas pela Emissao
 // 	If lDtEmi
 // 		//Se Nao for do tipo 9
 // 		If (SE4->E4_TIPO != "9")
 // 			//Pega as datas e valores das duplicatas
-// 			// aDupl := Condicao(MaFisRet(, "NF_BASEDUP"), SCJ->CJ_CONDPAG, MaFisRet(, "NF_VALIPI"), SCJ->CJ_EMISSAO, MaFisRet(, "NF_VALSOL"))
+// 			aDupl := Condicao(MaFisRet(, "NF_BASEDUP"), SCJ->C5_CONDPAG, MaFisRet(, "NF_VALIPI"), SCJ->C5_EMISSAO, MaFisRet(, "NF_VALSOL"))
 			
 // 			//Se tiver dados, percorre os valores e adiciona dados na Ãºltima parcela
 // 			If Len(aDupl) > 0
@@ -687,14 +757,14 @@ Return
 // 			nItem++
 			
 // 			//Se tiver entrega
-// 			If !Empty(QRY_ITE->CK_ENTREG)
+// 			If !Empty(QRY_ITE->C6_ENTREG)
 				
 // 				//Procura pela data de entrega no Array
-// 				nPosEntr := Ascan(aEntr, {|x| x[1] == QRY_ITE->CK_ENTREG})
+// 				nPosEntr := Ascan(aEntr, {|x| x[1] == QRY_ITE->C6_ENTREG})
 				
 // 				//Se Nao encontrar cria a Linha, do contrÃ¡rio atualiza os valores
 //  				If nPosEntr == 0
-// 					aAdd(aEntr, {QRY_ITE->CK_ENTREG, MaFisRet(nItem, "IT_BASEDUP"), MaFisRet(nItem, "IT_VALIPI"), MaFisRet(nItem, "IT_VALSOL")})
+// 					aAdd(aEntr, {QRY_ITE->C6_ENTREG, MaFisRet(nItem, "IT_BASEDUP"), MaFisRet(nItem, "IT_VALIPI"), MaFisRet(nItem, "IT_VALSOL")})
 // 				Else
 // 					aEntr[nPosEntr][2]+= MaFisRet(nItem, "IT_BASEDUP")
 // 					aEntr[nPosEntr][2]+= MaFisRet(nItem, "IT_VALIPI")
@@ -711,7 +781,7 @@ Return
 // 			//Percorre os valores conforme data de entrega
 // 			For nItem := 1 to Len(aEntr)
 // 				nAcerto  := 0
-// 				aDuplTmp := Condicao(aEntr[nItem][2], SCJ->CJ_CONDPAG, aEntr[nItem][3], aEntr[nItem][1], aEntr[nItem][4])
+// 				aDuplTmp := Condicao(aEntr[nItem][2], SCJ->C5_CONDPAG, aEntr[nItem][3], aEntr[nItem][1], aEntr[nItem][4])
 				
 // 				//Atualiza o valor da Ãºltima parcela
 // 				For nAux := 1 To Len(aDuplTmp)
@@ -737,52 +807,52 @@ Return
 // 	RestArea(aArea)
 // Return
 
-/*---------------------------------------------------------------------*
- | Func:  fImpDupl                                                     |
- | Desc:  FunÃ§Ã£o para imprimir as duplicatas                           |
- *---------------------------------------------------------------------*/
+// /*---------------------------------------------------------------------*
+//  | Func:  fImpDupl                                                     |
+//  | Desc:  FunÃ§Ã£o para imprimir as duplicatas                           |
+//  *---------------------------------------------------------------------*/
 
-Static Function fImpDupl()
-	Local nLinhas 		:= NoRound(Len(aDuplicatas)/2, 0) + 1
-	Local nAtual  		:= 0
-	Local nLinDup 		:= 0
-	Local nLinLim 		:= nLinAtu + ((nLinhas+1)*7) + nTamFundo
-	Local nColAux 		:= nColIni
-	nLinAtu += 7
+// Static Function fImpDupl()
+// 	Local nLinhas 		:= NoRound(Len(aDuplicatas)/2, 0) + 1
+// 	Local nAtual  		:= 0
+// 	Local nLinDup 		:= 0
+// 	Local nLinLim 		:= nLinAtu + ((nLinhas+1)*7) + nTamFundo
+// 	Local nColAux 		:= nColIni
+// 	nLinAtu += 7
 	
-	//Se atingir o fim da Página, quebra
-	If nLinLim+5 >= nLinFin
-		fImpRod()
-		fImpCab()
-	EndIf
+// 	//Se atingir o fim da Página, quebra
+// 	If nLinLim+5 >= nLinFin
+// 		fImpRod()
+// 		fImpCab()
+// 	EndIf
 	
-	// Condicao de Pagamento
-	oPrintPvt:Box(nLinAtu, nColIni, nLinAtu + nTamFundo, nColFin)
-	nLinAtu += nTamFundo - 5
-	oPrintPvt:SayAlign(nLinAtu-10, nColIni, "Condicao de Pagamento:  " +QRY_ORC->E4_DESCRI, 									oFontTit, nColFin-nColIni, nTamFundo, nCorAzul, nPadCenter, )
+// 	// Condicao de Pagamento
+// 	oPrintPvt:Box(nLinAtu, nColIni, nLinAtu + nTamFundo, nColFin)
+// 	nLinAtu += nTamFundo - 5
+// 	oPrintPvt:SayAlign(nLinAtu-10, nColIni, "Condicao de Pagamento:  " +QRY_ORC->E4_DESCRI, 									oFontTit, nColFin-nColIni, nTamFundo, nCorAzul, nPadCenter, )
 	
-	nLinAtu += 5
+// 	nLinAtu += 5
 
-	//Cria o grupo de Duplicatas
-	nLinAtu += nTamFundo - 5
-	oPrintPvt:SayAlign(nLinAtu-10, nColIni+5,  "Duplicatas",                													oFontTit,  100, nTamFundo, nCorAzul, nPadLeft, )
-	nLinAtu += 5
-	nLinDup := nLinAtu
+// 	//Cria o grupo de Duplicatas
+// 	nLinAtu += nTamFundo - 5
+// 	oPrintPvt:SayAlign(nLinAtu-10, nColIni+5,  "Duplicatas",                													oFontTit,  100, nTamFundo, nCorAzul, nPadLeft, )
+// 	nLinAtu += 5
+// 	nLinDup := nLinAtu
 
-	//Percorre as duplicatas
-	For nAtual := 1 To Len(aDuplicatas)
-		oPrintPvt:SayAlign(nLinDup, nColAux+0005, StrZero(nAtual, 3)+", no dia "+dToC(aDuplicatas[nAtual][1])+":", 				oFontCab,  150, 07, , nPadLeft, )
-		oPrintPvt:SayAlign(nLinDup, nColAux+0095, Alltrim(Transform(aDuplicatas[nAtual][2], cMaskVlr)),            				oFontCabN, 080, 07, , nPadRight, )
-		nLinDup += 7
+// 	//Percorre as duplicatas
+// 	For nAtual := 1 To Len(aDuplicatas)
+// 		oPrintPvt:SayAlign(nLinDup, nColAux+0005, StrZero(nAtual, 3)+", no dia "+dToC(aDuplicatas[nAtual][1])+":", 				oFontCab,  150, 07, , nPadLeft, )
+// 		oPrintPvt:SayAlign(nLinDup, nColAux+0095, Alltrim(Transform(aDuplicatas[nAtual][2], cMaskVlr)),            				oFontCabN, 080, 07, , nPadRight, )
+// 		nLinDup += 7
 		
-		//Se atingiu o Número de linhas, muda para imprimir na coluna do meio
-		If nAtual == nLinhas
-			nLinDup := nLinAtu
-			nColAux := nColMeio
-		EndIf
-	Next
+// 		//Se atingiu o Número de linhas, muda para imprimir na coluna do meio
+// 		If nAtual == nLinhas
+// 			nLinDup := nLinAtu
+// 			nColAux := nColMeio
+// 		EndIf
+// 	Next
 
-	nLinAtu += (nLinhas*7) + 3
-	nLinAtu += 3
-	oPrintPvt:Line(nLinDup+nTamFundo, nColIni+3, nLinDup+nTamFundo, nColFin)
-Return
+// 	nLinAtu += (nLinhas*7) + 3
+// 	nLinAtu += 3
+// 	oPrintPvt:Line(nLinDup+nTamFundo, nColIni+3, nLinDup+nTamFundo, nColFin)
+// Return
