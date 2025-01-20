@@ -153,8 +153,8 @@ Static Function fMontaRel(oProc)
 	cQryOrc += "    ISNULL(A1_DDD, '') AS A1_DDD, "       		 + CRLF
 	cQryOrc += "    ISNULL(A1_TEL, '') AS A1_TEL, "       		 + CRLF
 	cQryOrc += "    ISNULL(A1_EMAIL, '') AS A1_EMAIL, "       	 + CRLF
-	cQryOrc += "    CJ_CONDPAG, "                                + CRLF // SELECT
-	
+	cQryOrc += "    CJ_CONDPAG, "                                + CRLF 
+	cQryOrc += "    ISNULL(E4_DESCRI, '') AS E4_DESCRI, "        + CRLF // SELECT
 	cQryOrc += "    SCJ.R_E_C_N_O_ AS CJREC "                    + CRLF // CLIENTE
 	cQryOrc += " FROM "                                          + CRLF
 	cQryOrc += "    "+RetSQLName("SCJ")+" SCJ "                  + CRLF
@@ -164,7 +164,6 @@ Static Function fMontaRel(oProc)
 	cQryOrc += "        AND A1_LOJA = SCJ.CJ_LOJA "           	 + CRLF
 	cQryOrc += "        AND SA1.D_E_L_E_T_ = ' ' "               + CRLF
 	cQryOrc += "    ) "                                          + CRLF
-
 	cQryOrc += "    LEFT JOIN "+RetSQLName("SE4")+" SE4 ON ( "   + CRLF // CONDICAO DE PAGAMENTO
 	cQryOrc += "        E4_FILIAL     = '"+FWxFilial("SE4")+"' " + CRLF
 	cQryOrc += "        AND E4_CODIGO = SCJ.CJ_CONDPAG "         + CRLF

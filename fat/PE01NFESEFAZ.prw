@@ -58,14 +58,20 @@ User Function PE01NFESEFAZ()
     Local aRetorno  := {}
 
     Local aAreaSD2	:= SD2->(FWGetArea())
+    Local aAreaSD1	:= SD1->(FWGetArea())
     Local aAreaSB8	:= SB8->(FWGetArea())
     Local aAreaSF1  := SF1->(FWGetArea())
+
     Local cPictQtd  := PesqPict("SD2","D2_QUANT")
+    Local cPictQtdSd1 := PesqPict("SD1","D1_QUANT")
     Local nVolume   := 0
     Local _nI
 
     DBSelectArea("SD2")
     SD2->(DBSetOrder(3)) 
+
+    DBSelectArea("SD1")
+    SD1->(DBSetOrder(1)) 
 
     DBSelectArea("SB8")
     SB8->(DBSetOrder(5))
@@ -116,6 +122,28 @@ User Function PE01NFESEFAZ()
         //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     Else
+ 
+        For _nI := 1  to Len(aProd)
+            
+            SD1->(MsSeek(xFilial("SD1") + aNota[2] +aNota[1] +aNota[7]+ aNota[8] + aProd[_nI][2]+STrZero(aProd[_nI][1],2))) //Filial + Documento + Serie + Forn/Cliente + Loja + Produto + Item NF	
+
+            If !Empty(SD1->D1_LOTECTL)  
+                aProd[_nI][4] := Alltrim(aProd[_nI][4]) + " ;LOTE: " + Alltrim(SD1->D1_LOTECTL)
+                aProd[_nI][4] := Alltrim(aProd[_nI][4]) + " ;QTD: " + AllTrim(AllToChar(aProd[_nI,9],cPictQtdSd1))
+            EndIF
+
+            If !Empty(SD1->D1_DTVALID)
+                If SB8->(MsSeek(xFilial("SB8") + SD1->D1_COD + SD1->D1_LOTECTL ))
+                    aProd[_nI][4] := Alltrim(aProd[_nI][4]) + " ;FAB: " + DToC(SB8->B8_DFABRIC)
+                EndIF 
+                aProd[_nI][4] := Alltrim(aProd[_nI][4]) + " ;VAL: " + DToC(SD1->D1_DTVALID)
+            EndIF 
+
+        Next _nI
+        //@ Bloco responsável por acrescenta o Número do LOTE e Validade na Devolução
+        //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
         DbSelectArea("SF1")
         IF SF1->(MsSeek(xFilial("SF1")+aNota[2]+aNota[1]+aNota[7]+aNota[8]))
             If !Empty(SF1->F1_MOTRET) 
@@ -131,6 +159,7 @@ User Function PE01NFESEFAZ()
     EndIF
 
     FWRestArea(aAreaSD2)
+    FWRestArea(aAreaSD1)
     FWRestArea(aAreaSB8)
     FWRestArea(aAreaSF1)
 
